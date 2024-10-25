@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "Network Request Tracker",
+    "version": "1.0",
+    "description": "Tracks and displays the number of successful network requests for the current tab.",
+    "permissions": ["webRequest", "activeTab", "tabs"],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+      }
+    }
+  }
+  
