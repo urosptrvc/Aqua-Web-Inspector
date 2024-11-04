@@ -1,56 +1,72 @@
-let requestCounts = {}; // Tracks successful requests per tab
-let failedCounts = {};  // Tracks failed requests per tab
+let completedRequests = 0;
+let failedRequests = 0;
+let currentTabId = null;
+let popupPort = null;
 
-// Track successful requests
+// Increment completed or failed requests
 chrome.webRequest.onCompleted.addListener(
-  (details) => {
-    const tabId = details.tabId;
-    if (tabId !== -1) {
-      if (!requestCounts[tabId]) requestCounts[tabId] = 0;
-      requestCounts[tabId]++;
-      saveCounts(tabId); // Save counts to storage
-      updateBadge(tabId);
-    }
+  () => {
+    completedRequests++;
+    updateBadgeAndPopup();
   },
   { urls: ["<all_urls>"] }
 );
 
-// Track failed requests
 chrome.webRequest.onErrorOccurred.addListener(
-  (details) => {
-    const tabId = details.tabId;
-    if (tabId !== -1) {
-      if (!failedCounts[tabId]) failedCounts[tabId] = 0;
-      failedCounts[tabId]++;
-      saveCounts(tabId); // Save counts to storage
-      updateBadge(tabId);
-    }
+  () => {
+    failedRequests++;
+    updateBadgeAndPopup();
   },
   { urls: ["<all_urls>"] }
 );
 
-// Save counts to storage
-function saveCounts(tabId) {
-  chrome.storage.local.set({
-    [tabId]: {
-      successful: requestCounts[tabId] || 0,
-      failed: failedCounts[tabId] || 0
-    }
-  });
+// Function to calculate success percentage and send updates to popup
+function updateBadgeAndPopup() {
+  const totalRequests = completedRequests + failedRequests;
+  const successPercentage = totalRequests > 0 ? (completedRequests / totalRequests) * 100 : 0;
+
+  // Update badge text with the total request count
+  chrome.action.setBadgeText({ text: totalRequests.toString() });
+
+  // Send updated data to popup if connected
+  if (popupPort) {
+    popupPort.postMessage({
+      completed: completedRequests,
+      failed: failedRequests,
+      total: totalRequests,
+      successPercentage: successPercentage.toFixed(2)
+    });
+  }
 }
 
-// Update badge text based on successful requests
-function updateBadge(tabId) {
-  const total = (requestCounts[tabId] || 0) + (failedCounts[tabId] || 0);
-  chrome.action.setBadgeText({ text: total.toString(), tabId });
-}
+// Reset counts when a new URL is loaded in the current tab
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tabId === currentTabId && changeInfo.url) {
+    completedRequests = 0;
+    failedRequests = 0;
+    chrome.action.setBadgeText({ text: '' });
+  }
+});
 
-// Reset counts on page navigation
-chrome.webNavigation.onCommitted.addListener((details) => {
-  if (details.frameId === 0) {
-    requestCounts[details.tabId] = 0;
-    failedCounts[details.tabId] = 0;
-    chrome.storage.local.set({ [details.tabId]: { successful: 0, failed: 0 } });
-    chrome.action.setBadgeText({ text: "0", tabId: details.tabId });
+// Track the active tab to know when to reset
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  currentTabId = activeInfo.tabId;
+  completedRequests = 0;
+  failedRequests = 0;
+  chrome.action.setBadgeText({ text: '' });
+});
+
+// Listen for popup connection
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup") {
+    popupPort = port;
+
+    // Send initial data when popup connects
+    updateBadgeAndPopup();
+
+    // Handle popup disconnect
+    popupPort.onDisconnect.addListener(() => {
+      popupPort = null;
+    });
   }
 });

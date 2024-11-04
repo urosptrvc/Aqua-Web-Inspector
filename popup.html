@@ -2,17 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Network Request Tracker</title>
-  <style>
-    body { font-family: Arial, sans-serif; width: 200px; padding: 10px; }
-    h1 { font-size: 1.2em; }
-  </style>
+  <title>Network Requests</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>Network Requests</h1>
-  <p>Successful requests: <span id="request-count">0</span></p>
-  <p>Success Rate: <span id="success-rate">0%</span></p>
-  <button id="reset">Reset Count</button>
+  <h2>Network Requests</h2>
+  <!-- Completed Requests Card -->
+  <div class="card">
+    <div class="metric" id="completed">Completed: 0</div>
+    <div class="subtext">Successful requests</div>
+  </div>
+
+  <!-- Failed Requests Card -->
+  <div class="card">
+    <div class="metric" id="failed">Failed: 0</div>
+    <div class="subtext">Failed requests</div>
+  </div>
+
+  <!-- Total Requests Card -->
+  <div class="card">
+    <div class="metric" id="total">Total Requests: 0</div>
+  </div>
+
+  <!-- Success Rate -->
+  <div class="success-rate" id="percentage">Success Rate: 0%</div>
+
   <script src="popup.js"></script>
 </body>
 </html>
